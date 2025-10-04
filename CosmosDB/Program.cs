@@ -12,5 +12,9 @@ class Program
         {
             Console.WriteLine(greeting);
         }
+
+        // await context.AddPreTrigger();
+
+        // await context.UsePreTrigger();
     }
 }

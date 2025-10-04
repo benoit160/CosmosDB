@@ -1,7 +1,15 @@
 ﻿namespace CosmosDB;
 
+using Newtonsoft.Json;
+using Microsoft.Azure.Cosmos;
+
+/// <summary>
+/// The base properties necessary for a correct CosmosDB document.
+/// </summary>
+/// <remarks>The <see cref="JsonPropertyAttribute"/> are used to indicate to the Newtonsoft serializer the name of the properties when using the <see cref="Container"/> directly for queries.</remarks>
 public abstract class BaseDocument
 {
+    [JsonProperty("id")]
     public Guid Id { get; init; }
     
     /// <summary>
@@ -12,6 +20,7 @@ public abstract class BaseDocument
     /// <summary>
     /// Timestamp of the last modification.
     /// </summary>
-    /// <remarks>This property is managed by the Database engine.</remarks>
+    /// <remarks>This property is managed by the database engine.</remarks>
+    [JsonProperty("_ts")]
     public long TimeStamp { get; init; }
 }
