@@ -2,8 +2,15 @@
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Console.WriteLine("Hello, World!");
+        CosmosContext context = new();
+        
+        List<string> greetings = await context.QueryUserDefinedFunction();
+
+        foreach (string greeting in greetings)
+        {
+            Console.WriteLine(greeting);
+        }
     }
 }
