@@ -34,12 +34,17 @@ public class CosmosContext : DbContext
         // Configure this entity to be in it's own contaner, with no discriminator.
         modelBuilder.Entity<Person>()
             .HasNoDiscriminator()
+            .HasQueryFilter(p => p.PartitionKey == nameof(Person))
             .ToContainer(nameof(Persons));
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseCosmos(
+    {
+        optionsBuilder.UseCosmos(
             "https://localhost:8081",
             "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
             databaseName: "Sandbox");
+        
+        optionsBuilder.LogTo(Console.WriteLine);
+    }
 }
