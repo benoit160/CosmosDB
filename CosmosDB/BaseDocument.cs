@@ -2,7 +2,7 @@
 
 public abstract class BaseDocument
 {
-    public required string Id { get; init; }
+    public Guid Id { get; init; }
     
     /// <summary>
     /// Logical partition key.
