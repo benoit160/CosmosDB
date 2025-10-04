@@ -1,6 +1,7 @@
 ﻿namespace CosmosDB;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
 
 public class CosmosContext : DbContext
 {
@@ -19,6 +20,7 @@ public class CosmosContext : DbContext
         {
             modelBuilder.Entity(entityType)
                 .Property(nameof(BaseDocument.Id))
+                .HasValueGenerator<GuidValueGenerator>()
                 .ToJsonProperty("id");
 
             modelBuilder.Entity(entityType)
@@ -29,6 +31,7 @@ public class CosmosContext : DbContext
                 .ToJsonProperty("_ts");
         }
 
+        // Configure this entity to be in it's own contaner, with no discriminator.
         modelBuilder.Entity<Person>()
             .HasNoDiscriminator()
             .ToContainer(nameof(Persons));
