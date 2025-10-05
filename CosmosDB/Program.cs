@@ -1,7 +1,6 @@
 ﻿namespace CosmosDB;
 
 using Microsoft.Azure.Cosmos;
-using Microsoft.EntityFrameworkCore;
 
 class Program
 {
