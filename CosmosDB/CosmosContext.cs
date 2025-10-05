@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.ValueGeneration;
 public class CosmosContext : DbContext
 {
     public const string DatabaseName = "Sandbox";
+    public const string LeasesContainerName = "Leases";
     
     public DbSet<Person> Persons { get; set; }
 
@@ -208,6 +209,24 @@ public class CosmosContext : DbContext
         await container.CreateItemAsync(bob, requestOptions: options );
     }
 
+    public ChangeFeedProcessor GetChangeFeedProcessor<T>(Container.ChangesHandler<T> changeHandlerDelegate)
+        where T : BaseDocument
+    {
+        Container sourceContainer = GetContainer<T>();
+        Container leaseContainer = GetLeaseContainer();
+
+        string processorName = $"{typeof(T).Name}-Processor";
+        
+        ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedProcessorBuilder(processorName, changeHandlerDelegate);
+
+        ChangeFeedProcessor processor = builder
+            .WithInstanceName("desktopApplication")
+            .WithLeaseContainer(leaseContainer)
+            .Build();
+        
+        return processor;
+    }
+
     /// <summary>
     /// Uses reflection to get the name of the DbSet property where the entity is stored.
     /// </summary>
@@ -225,5 +244,27 @@ public class CosmosContext : DbContext
         if (property is null) throw new ArgumentException();
 
         return property.Name;
+    }
+
+    private Container GetLeaseContainer()
+    {
+        CosmosClient client = Database.GetCosmosClient();
+     
+        Database database = client.GetDatabase(DatabaseName);
+        
+        Container container = database.GetContainer(id: LeasesContainerName);
+        
+        return container;
+    }
+    
+    private async Task<Container> CreateLeaseContainer()
+    {
+        CosmosClient client = Database.GetCosmosClient();
+     
+        Database database = client.GetDatabase(DatabaseName);
+        
+        Container container = await database.CreateContainerIfNotExistsAsync(id: LeasesContainerName, partitionKeyPath: "/id");
+        
+        return container;
     }
 }

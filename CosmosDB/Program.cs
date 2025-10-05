@@ -1,8 +1,43 @@
 ﻿namespace CosmosDB;
 
+using Microsoft.Azure.Cosmos;
+using Microsoft.EntityFrameworkCore;
+
 class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
+    {
+        CosmosContext context = new CosmosContext();
+        await  context.Database.EnsureCreatedAsync();
+        CosmosClient client = context.Database.GetCosmosClient();
+
+        Container.ChangesHandler<Person> changeHandlerDelegate = async (changes, cancellationToken) => 
+        {
+            foreach (Person person in changes)
+            {
+                Console.WriteLine($"change processor is processing person with name : {person.Name}");
+            }
+        };
+        
+        ChangeFeedProcessor processor = context.GetChangeFeedProcessor<Person>(changeHandlerDelegate);
+       
+        await processor.StartAsync();
+        
+        // Person person = new Person
+        // {
+        //     PartitionKey = nameof(Person),
+        //     Name = "Bob" 
+        // };
+        
+        // context.Persons.Add(person);
+        // await context.SaveChangesAsync();
+        
+        Console.ReadLine();
+        
+        await processor.StopAsync();
+    }
+    
+    static async Task Main2(string[] args)
     {
         CosmosContext context = new();
         
