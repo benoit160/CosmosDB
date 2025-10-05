@@ -1,20 +1,28 @@
 ﻿namespace CosmosDB;
 
+using Microsoft.Azure.Cosmos;
+
 class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
     {
-        CosmosContext context = new();
-        
-        List<string> greetings = await context.QueryUserDefinedFunction();
+        CosmosContext context = new CosmosContext();
+        await context.Database.EnsureCreatedAsync();
 
-        foreach (string greeting in greetings)
+        Container.ChangesHandler<Person> changeHandlerDelegate = async (changes, cancellationToken) => 
         {
-            Console.WriteLine(greeting);
-        }
-
-        // await context.AddPreTrigger();
-
-        // await context.UsePreTrigger();
+            foreach (Person person in changes)
+            {
+                Console.WriteLine($"change processor is processing person with name : {person.Name}");
+            }
+        };
+        
+        ChangeFeedProcessor processor = context.GetChangeFeedProcessor<Person>(changeHandlerDelegate);
+       
+        await processor.StartAsync();
+        
+        Console.ReadLine();
+        
+        await processor.StopAsync();
     }
 }

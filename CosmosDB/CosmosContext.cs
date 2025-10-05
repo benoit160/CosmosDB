@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.ValueGeneration;
 public class CosmosContext : DbContext
 {
     public const string DatabaseName = "Sandbox";
+    public const string LeasesContainerName = "Leases";
     
     public DbSet<Person> Persons { get; set; }
 
@@ -209,6 +210,101 @@ public class CosmosContext : DbContext
     }
 
     /// <summary>
+    /// Create a change feed processor for this entity.
+    /// </summary>
+    /// <param name="changeHandlerDelegate">The delegate that will process the change feed.</param>
+    /// <typeparam name="T">The entity, inheriting from <see cref="BaseDocument"/></typeparam>
+    /// <returns>A <see cref="ChangeFeedProcessor"/>.</returns>
+    /// <remarks>Once created, the processor must be started with <see cref="ChangeFeedProcessor.StartAsync()"/>.</remarks>
+    /// <example>
+    /// The following example shows how to create the ChangesEstimationHandler.
+    /// <code>
+    /// Container.ChangesHandler&lt;MyEntity&gt; changeHandlerDelegate = async (changes, cancellationToken) => 
+    /// {
+    ///     foreach (MyEntity entity in changes)
+    ///     {
+    ///         Console.WriteLine($"processing entity with id : {entity.Id}");
+    ///     }
+    /// };
+    /// </code>
+    /// </example>
+    public ChangeFeedProcessor GetChangeFeedProcessor<T>(Container.ChangesHandler<T> changeHandlerDelegate)
+        where T : BaseDocument
+    {
+        Container sourceContainer = GetContainer<T>();
+        Container leaseContainer = GetLeaseContainer();
+
+        string processorName = $"{typeof(T).Name}-Processor";
+        
+        ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedProcessorBuilder(processorName, changeHandlerDelegate);
+
+        ChangeFeedProcessor processor = builder
+            .WithInstanceName("desktopApplication")
+            .WithLeaseContainer(leaseContainer)
+            .Build();
+        
+        return processor;
+    }
+    
+    /// <summary>
+    /// Create a change feed estimator for this entity.
+    /// </summary>
+    /// <param name="changeHandlerDelegate">The delegate that will process the change estimation.</param>
+    /// <typeparam name="T">The entity, inheriting from <see cref="BaseDocument"/></typeparam>
+    /// <returns>A <see cref="ChangeFeedProcessor"/>.</returns>
+    /// <remarks>Once created, the processor must be started with <see cref="ChangeFeedProcessor.StartAsync()"/>.</remarks>
+    /// <example>
+    /// The following example shows how to create the ChangesEstimationHandler.
+    /// <code>
+    /// ChangesEstimationHandler changeEstimationDelegate = async (
+    ///     long estimation, 
+    ///     CancellationToken cancellationToken
+    /// ) => {
+    ///     // Do something with the estimation
+    /// };
+    /// </code>
+    /// </example>
+    public ChangeFeedProcessor GetChangeFeedEstimator<T>(Container.ChangesEstimationHandler changeHandlerDelegate)
+        where T : BaseDocument
+    {
+        Container sourceContainer = GetContainer<T>();
+        Container leaseContainer = GetLeaseContainer();
+
+        string processorName = $"{typeof(T).Name}-Estimator";
+        
+        ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedEstimatorBuilder(processorName, changeHandlerDelegate);
+
+        ChangeFeedProcessor processor = builder
+            .WithInstanceName("desktopApplication")
+            .WithLeaseContainer(leaseContainer)
+            .Build();
+        
+        return processor;
+    }
+
+    /// <summary>
+    /// Checks if the container exists.
+    /// </summary>
+    /// <param name="containerId">The name of the container.</param>
+    /// <returns>True if the container exists, otherwise false.</returns>
+    public async Task<bool> ContainerExistsAsync(string containerId)
+    {
+        CosmosClient client = Database.GetCosmosClient();
+        Container container = client.GetContainer(DatabaseName, containerId);
+        
+        try
+        {
+            // Triggers a read to verify existence
+            await container.ReadContainerAsync();
+            return true;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+    
+    /// <summary>
     /// Uses reflection to get the name of the DbSet property where the entity is stored.
     /// </summary>
     /// <typeparam name="T">The entity stored in the DbSet</typeparam>
@@ -225,5 +321,27 @@ public class CosmosContext : DbContext
         if (property is null) throw new ArgumentException();
 
         return property.Name;
+    }
+
+    private Container GetLeaseContainer()
+    {
+        CosmosClient client = Database.GetCosmosClient();
+     
+        Database database = client.GetDatabase(DatabaseName);
+        
+        Container container = database.GetContainer(id: LeasesContainerName);
+        
+        return container;
+    }
+    
+    private async Task<Container> CreateLeaseContainer()
+    {
+        CosmosClient client = Database.GetCosmosClient();
+     
+        Database database = client.GetDatabase(DatabaseName);
+        
+        Container container = await database.CreateContainerIfNotExistsAsync(id: LeasesContainerName, partitionKeyPath: "/id");
+        
+        return container;
     }
 }
