@@ -8,8 +8,7 @@ class Program
     static async Task Main()
     {
         CosmosContext context = new CosmosContext();
-        await  context.Database.EnsureCreatedAsync();
-        CosmosClient client = context.Database.GetCosmosClient();
+        await context.Database.EnsureCreatedAsync();
 
         Container.ChangesHandler<Person> changeHandlerDelegate = async (changes, cancellationToken) => 
         {
@@ -26,21 +25,5 @@ class Program
         Console.ReadLine();
         
         await processor.StopAsync();
-    }
-    
-    static async Task Main2(string[] args)
-    {
-        CosmosContext context = new();
-        
-        List<string> greetings = await context.QueryUserDefinedFunction();
-
-        foreach (string greeting in greetings)
-        {
-            Console.WriteLine(greeting);
-        }
-
-        // await context.AddPreTrigger();
-
-        // await context.UsePreTrigger();
     }
 }
