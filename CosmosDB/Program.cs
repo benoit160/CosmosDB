@@ -23,15 +23,6 @@ class Program
        
         await processor.StartAsync();
         
-        // Person person = new Person
-        // {
-        //     PartitionKey = nameof(Person),
-        //     Name = "Bob" 
-        // };
-        
-        // context.Persons.Add(person);
-        // await context.SaveChangesAsync();
-        
         Console.ReadLine();
         
         await processor.StopAsync();

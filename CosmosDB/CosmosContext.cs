@@ -209,6 +209,25 @@ public class CosmosContext : DbContext
         await container.CreateItemAsync(bob, requestOptions: options );
     }
 
+    /// <summary>
+    /// Create a change feed processor for this entity.
+    /// </summary>
+    /// <param name="changeHandlerDelegate">The delegate that will process the change feed.</param>
+    /// <typeparam name="T">The entity, inheriting from <see cref="BaseDocument"/></typeparam>
+    /// <returns>A <see cref="ChangeFeedProcessor"/>.</returns>
+    /// <remarks>Once created, the processor must be started with <see cref="ChangeFeedProcessor.StartAsync()"/>.</remarks>
+    /// <example>
+    /// The following example shows how to create the ChangesEstimationHandler.
+    /// <code>
+    /// Container.ChangesHandler&lt;MyEntity&gt; changeHandlerDelegate = async (changes, cancellationToken) => 
+    /// {
+    ///     foreach (MyEntity entity in changes)
+    ///     {
+    ///         Console.WriteLine($"processing entity with id : {entity.Id}");
+    ///     }
+    /// };
+    /// </code>
+    /// </example>
     public ChangeFeedProcessor GetChangeFeedProcessor<T>(Container.ChangesHandler<T> changeHandlerDelegate)
         where T : BaseDocument
     {
@@ -227,6 +246,24 @@ public class CosmosContext : DbContext
         return processor;
     }
     
+    /// <summary>
+    /// Create a change feed estimator for this entity.
+    /// </summary>
+    /// <param name="changeHandlerDelegate">The delegate that will process the change estimation.</param>
+    /// <typeparam name="T">The entity, inheriting from <see cref="BaseDocument"/></typeparam>
+    /// <returns>A <see cref="ChangeFeedProcessor"/>.</returns>
+    /// <remarks>Once created, the processor must be started with <see cref="ChangeFeedProcessor.StartAsync()"/>.</remarks>
+    /// <example>
+    /// The following example shows how to create the ChangesEstimationHandler.
+    /// <code>
+    /// ChangesEstimationHandler changeEstimationDelegate = async (
+    ///     long estimation, 
+    ///     CancellationToken cancellationToken
+    /// ) => {
+    ///     // Do something with the estimation
+    /// };
+    /// </code>
+    /// </example>
     public ChangeFeedProcessor GetChangeFeedEstimator<T>(Container.ChangesEstimationHandler changeHandlerDelegate)
         where T : BaseDocument
     {
@@ -245,6 +282,28 @@ public class CosmosContext : DbContext
         return processor;
     }
 
+    /// <summary>
+    /// Checks if the container exists.
+    /// </summary>
+    /// <param name="containerId">The name of the container.</param>
+    /// <returns>True if the container exists, otherwise false.</returns>
+    public async Task<bool> ContainerExistsAsync(string containerId)
+    {
+        CosmosClient client = Database.GetCosmosClient();
+        Container container = client.GetContainer(DatabaseName, containerId);
+        
+        try
+        {
+            // Triggers a read to verify existence
+            await container.ReadContainerAsync();
+            return true;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+    
     /// <summary>
     /// Uses reflection to get the name of the DbSet property where the entity is stored.
     /// </summary>
