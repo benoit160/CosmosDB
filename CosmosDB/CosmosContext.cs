@@ -226,6 +226,24 @@ public class CosmosContext : DbContext
         
         return processor;
     }
+    
+    public ChangeFeedProcessor GetChangeFeedEstimator<T>(Container.ChangesEstimationHandler changeHandlerDelegate)
+        where T : BaseDocument
+    {
+        Container sourceContainer = GetContainer<T>();
+        Container leaseContainer = GetLeaseContainer();
+
+        string processorName = $"{typeof(T).Name}-Estimator";
+        
+        ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedEstimatorBuilder(processorName, changeHandlerDelegate);
+
+        ChangeFeedProcessor processor = builder
+            .WithInstanceName("desktopApplication")
+            .WithLeaseContainer(leaseContainer)
+            .Build();
+        
+        return processor;
+    }
 
     /// <summary>
     /// Uses reflection to get the name of the DbSet property where the entity is stored.
