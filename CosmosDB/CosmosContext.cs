@@ -1,6 +1,7 @@
 ﻿namespace CosmosDB;
 
 using System.Reflection;
+
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ public class CosmosContext : DbContext
 {
     public const string DatabaseName = "Sandbox";
     public const string LeasesContainerName = "Leases";
-    
+
     public DbSet<Person> Persons { get; set; }
 
     /// <summary>
@@ -25,7 +26,7 @@ public class CosmosContext : DbContext
         string property = GetDbSetPropertyName<T>();
         return client.GetContainer(DatabaseName, property);
     }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Get all types inheriting from BaseDocument
@@ -63,7 +64,7 @@ public class CosmosContext : DbContext
             accountEndpoint: "https://localhost:8081",
             accountKey: "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
             databaseName: DatabaseName);
-        
+
         optionsBuilder.LogTo(Console.WriteLine);
     }
 
@@ -102,11 +103,11 @@ public class CosmosContext : DbContext
                              return "Hi " + name
                          }
                          """;
-        
+
         UserDefinedFunctionProperties udf = CreateUserDefinedFunction("SayHi", udfBody);
-        
+
         Container container = GetContainer<Person>();
-        
+
         await container.Scripts.CreateUserDefinedFunctionAsync(udf);
     }
 
@@ -125,10 +126,10 @@ public class CosmosContext : DbContext
                                 request.setBody(pendingItem);
                             }
                             """;
-        
+
         TriggerProperties trigger = CreatePreTrigger("addLabel", preTrigger);
         Container container = GetContainer<Person>();
-        
+
         await container.Scripts.CreateTriggerAsync(trigger);
     }
 
@@ -167,7 +168,7 @@ public class CosmosContext : DbContext
             TriggerType = TriggerType.Pre
         };
     }
-    
+
     public async Task<List<string>> QueryUserDefinedFunction()
     {
         Container container = GetContainer<Person>();
@@ -198,15 +199,15 @@ public class CosmosContext : DbContext
             Name = "Bob",
             PartitionKey = nameof(Person),
         };
-        
+
         Container container = GetContainer<Person>();
-        
+
         ItemRequestOptions options = new()
         {
             PreTriggers = new List<string> { "addLabel" },
         };
-        
-        await container.CreateItemAsync(bob, requestOptions: options );
+
+        await container.CreateItemAsync(bob, requestOptions: options);
     }
 
     /// <summary>
@@ -235,17 +236,17 @@ public class CosmosContext : DbContext
         Container leaseContainer = GetLeaseContainer();
 
         string processorName = $"{typeof(T).Name}-Processor";
-        
+
         ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedProcessorBuilder(processorName, changeHandlerDelegate);
 
         ChangeFeedProcessor processor = builder
             .WithInstanceName("desktopApplication")
             .WithLeaseContainer(leaseContainer)
             .Build();
-        
+
         return processor;
     }
-    
+
     /// <summary>
     /// Create a change feed estimator for this entity.
     /// </summary>
@@ -271,14 +272,14 @@ public class CosmosContext : DbContext
         Container leaseContainer = GetLeaseContainer();
 
         string processorName = $"{typeof(T).Name}-Estimator";
-        
+
         ChangeFeedProcessorBuilder builder = sourceContainer.GetChangeFeedEstimatorBuilder(processorName, changeHandlerDelegate);
 
         ChangeFeedProcessor processor = builder
             .WithInstanceName("desktopApplication")
             .WithLeaseContainer(leaseContainer)
             .Build();
-        
+
         return processor;
     }
 
@@ -291,7 +292,7 @@ public class CosmosContext : DbContext
     {
         CosmosClient client = Database.GetCosmosClient();
         Container container = client.GetContainer(DatabaseName, containerId);
-        
+
         try
         {
             // Triggers a read to verify existence
@@ -303,7 +304,7 @@ public class CosmosContext : DbContext
             return false;
         }
     }
-    
+
     /// <summary>
     /// Uses reflection to get the name of the DbSet property where the entity is stored.
     /// </summary>
@@ -326,22 +327,22 @@ public class CosmosContext : DbContext
     private Container GetLeaseContainer()
     {
         CosmosClient client = Database.GetCosmosClient();
-     
+
         Database database = client.GetDatabase(DatabaseName);
-        
+
         Container container = database.GetContainer(id: LeasesContainerName);
-        
+
         return container;
     }
-    
+
     private async Task<Container> CreateLeaseContainer()
     {
         CosmosClient client = Database.GetCosmosClient();
-     
+
         Database database = client.GetDatabase(DatabaseName);
-        
+
         Container container = await database.CreateContainerIfNotExistsAsync(id: LeasesContainerName, partitionKeyPath: "/id");
-        
+
         return container;
     }
 }

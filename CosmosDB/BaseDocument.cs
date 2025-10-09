@@ -1,7 +1,8 @@
 ﻿namespace CosmosDB;
 
-using Newtonsoft.Json;
 using Microsoft.Azure.Cosmos;
+
+using Newtonsoft.Json;
 
 /// <summary>
 /// The base properties necessary for a correct CosmosDB document.
@@ -11,7 +12,7 @@ public abstract class BaseDocument
 {
     [JsonProperty("id")]
     public Guid Id { get; init; }
-    
+
     /// <summary>
     /// Logical partition key.
     /// </summary>
