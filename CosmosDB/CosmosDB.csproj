@@ -7,6 +7,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <Target Name="FormatCode" AfterTargets="Build">
+        <!-- Execute formating action on all rule that have warn or higher severity -->
+        <!-- Works with info, warn, error -->
+        <Exec Command="dotnet format --severity warn" />
+    </Target>
+    
     <ItemGroup>
       <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" Version="9.0.9" />
     </ItemGroup>
